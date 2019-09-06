@@ -36,15 +36,20 @@ public final class ApolloReactiveExtensions {
         cachePolicy: CachePolicy = .returnCacheDataElseFetch,
         queue: DispatchQueue = DispatchQueue.main) -> Maybe<Query.Data> {
         return Maybe.create { maybe in
-            let cancellable = self.client.fetch(query: query, cachePolicy: cachePolicy, queue: queue) { result, error in
-                if let error = error {
+            let cancellable = self.client.fetch(query: query, cachePolicy: cachePolicy, queue: queue) { result in
+                switch result {
+                case .failure(let error):
                     maybe(.error(error))
-                } else if let errors = result?.errors {
-                    maybe(.error(RxApolloError.graphQLErrors(errors)))
-                } else if let data = result?.data {
-                    maybe(.success(data))
-                } else {
-                    maybe(.completed)
+                case .success(let graphQLResult):
+                    if let errors = graphQLResult.errors {
+                        maybe(.error(RxApolloError.graphQLErrors(errors)))
+                    }
+                    else if let data = graphQLResult.data {
+                        maybe(.success(data))
+                    }
+                    else {
+                        maybe(.completed)
+                    }
                 }
             }
 
@@ -66,13 +71,17 @@ public final class ApolloReactiveExtensions {
         cachePolicy: CachePolicy = .returnCacheDataElseFetch,
         queue: DispatchQueue = DispatchQueue.main) -> Observable<Query.Data> {
         return Observable.create { observer in
-            let watcher = self.client.watch(query: query, cachePolicy: cachePolicy, queue: queue) { result, error in
-                if let error = error {
+            let watcher = self.client.watch(query: query, cachePolicy: cachePolicy, queue: queue) { result in
+                switch result {
+                case .failure(let error):
                     observer.onError(error)
-                } else if let errors = result?.errors {
-                    observer.onError(RxApolloError.graphQLErrors(errors))
-                } else if let data = result?.data {
-                    observer.onNext(data)
+                case .success(let graphQLResult):
+                    if let errors = graphQLResult.errors {
+                        observer.onError(RxApolloError.graphQLErrors(errors))
+                    }
+                    else if let data = graphQLResult.data {
+                        observer.onNext(data)
+                    }
                 }
 
                 // Should we silently ignore the case where `result` and `error` are both nil, or should this be an error situation?
@@ -92,15 +101,20 @@ public final class ApolloReactiveExtensions {
     /// - Returns: A `Maybe` that emits the results of the mutation.
     public func perform<Mutation: GraphQLMutation>(mutation: Mutation, queue: DispatchQueue = DispatchQueue.main) -> Maybe<Mutation.Data> {
         return Maybe.create { maybe in
-            let cancellable = self.client.perform(mutation: mutation, queue: queue) { result, error in
-                if let error = error {
+            let cancellable = self.client.perform(mutation: mutation, queue: queue) { result in
+                switch result {
+                case .failure(let error):
                     maybe(.error(error))
-                } else if let errors = result?.errors {
-                    maybe(.error(RxApolloError.graphQLErrors(errors)))
-                } else if let data = result?.data {
-                    maybe(.success(data))
-                } else {
-                    maybe(.completed)
+                case .success(let graphQLResult):
+                    if let errors = graphQLResult.errors {
+                        maybe(.error(RxApolloError.graphQLErrors(errors)))
+                    }
+                    else if let data = graphQLResult.data {
+                        maybe(.success(data))
+                    }
+                    else {
+                        maybe(.completed)
+                    }
                 }
             }
 
