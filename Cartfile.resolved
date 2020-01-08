@@ -1,2 +1,2 @@
 github "ReactiveX/RxSwift" "5.0.1"
-github "apollographql/apollo-ios" "0.15.1"
+github "apollographql/apollo-ios" "0.21.0"
