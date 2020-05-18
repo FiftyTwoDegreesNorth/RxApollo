@@ -34,22 +34,14 @@ public final class ApolloReactiveExtensions {
     public func fetch<Query: GraphQLQuery>(
         query: Query,
         cachePolicy: CachePolicy = .returnCacheDataElseFetch,
-        queue: DispatchQueue = DispatchQueue.main) -> Maybe<Query.Data> {
+        queue: DispatchQueue = DispatchQueue.main) -> Maybe<GraphQLResult<Query.Data>> {
         return Maybe.create { maybe in
             let cancellable = self.client.fetch(query: query, cachePolicy: cachePolicy, queue: queue) { result in
                 switch result {
                 case .failure(let error):
                     maybe(.error(error))
                 case .success(let graphQLResult):
-                    if let errors = graphQLResult.errors {
-                        maybe(.error(RxApolloError.graphQLErrors(errors)))
-                    }
-                    else if let data = graphQLResult.data {
-                        maybe(.success(data))
-                    }
-                    else {
-                        maybe(.completed)
-                    }
+                    maybe(.success(graphQLResult))
                 }
             }
 
@@ -69,19 +61,14 @@ public final class ApolloReactiveExtensions {
     public func watch<Query: GraphQLQuery>(
         query: Query,
         cachePolicy: CachePolicy = .returnCacheDataElseFetch,
-        queue: DispatchQueue = DispatchQueue.main) -> Observable<Query.Data> {
+        queue: DispatchQueue = DispatchQueue.main) -> Observable<GraphQLResult<Query.Data>> {
         return Observable.create { observer in
             let watcher = self.client.watch(query: query, cachePolicy: cachePolicy, queue: queue) { result in
                 switch result {
                 case .failure(let error):
                     observer.onError(error)
                 case .success(let graphQLResult):
-                    if let errors = graphQLResult.errors {
-                        observer.onError(RxApolloError.graphQLErrors(errors))
-                    }
-                    else if let data = graphQLResult.data {
-                        observer.onNext(data)
-                    }
+                    observer.onNext(graphQLResult)
                 }
 
                 // Should we silently ignore the case where `result` and `error` are both nil, or should this be an error situation?
@@ -99,22 +86,14 @@ public final class ApolloReactiveExtensions {
     ///   - mutation: The mutation to perform.
     ///   - queue: A dispatch queue on which the result handler will be called. Defaults to the main queue.
     /// - Returns: A `Maybe` that emits the results of the mutation.
-    public func perform<Mutation: GraphQLMutation>(mutation: Mutation, queue: DispatchQueue = DispatchQueue.main) -> Maybe<Mutation.Data> {
+    public func perform<Mutation: GraphQLMutation>(mutation: Mutation, queue: DispatchQueue = DispatchQueue.main) -> Maybe<GraphQLResult<Mutation.Data>> {
         return Maybe.create { maybe in
             let cancellable = self.client.perform(mutation: mutation, queue: queue) { result in
                 switch result {
                 case .failure(let error):
                     maybe(.error(error))
                 case .success(let graphQLResult):
-                    if let errors = graphQLResult.errors {
-                        maybe(.error(RxApolloError.graphQLErrors(errors)))
-                    }
-                    else if let data = graphQLResult.data {
-                        maybe(.success(data))
-                    }
-                    else {
-                        maybe(.completed)
-                    }
+                    maybe(.success(graphQLResult))
                 }
             }
 
